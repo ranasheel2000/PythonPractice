@@ -3,7 +3,7 @@ def sol(A):
     leftSum=A[0]
     rightSum=sum(A)-A[0]
     diff=abs(rightSum-leftSum)
-    for i in range(1,len(A)):
+    for i in range(1,len(A)-1):
         rightSum=rightSum-A[i]
         leftSum=leftSum+A[i]
         newDiff=abs(rightSum-leftSum)
