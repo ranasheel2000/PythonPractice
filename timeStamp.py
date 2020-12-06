@@ -1,5 +1,8 @@
-from datetime import datetime
+import time
+import datetime
 
 if __name__ == "__main__":
-  timeStamp = datetime.now()
-  print("current timestamp =", timeStamp)
+  while True:
+    timeStamp = datetime.datetime.now()
+    print("current timestamp =", timeStamp)
+    time.sleep(1)
