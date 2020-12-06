@@ -1,0 +1,24 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: time-stamp-cron-job
+  labels:
+    run: time-stamp-cron-job
+spec:
+  schedule: "0/1 * * * *"
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      parallelism: 1
+      backoffLimit: 3
+      template:
+        spec:
+          containers:
+            - image: ranasheel2000/time-stamp:latest
+              command: ["python3"]
+              args: ["./timeStamp.py"]
+              name: time-stamp-job
+              imagePullPolicy: IfNotPresent
+          restartPolicy: OnFailure
