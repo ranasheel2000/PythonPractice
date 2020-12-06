@@ -1,0 +1,94 @@
+Please refer below the breakdown of whole process:
+
+1. Create Python script which will be executed as Kubernetes job.
+   --------------------------------------------------------------
+   Details (Please refer timeStamp.py): 
+      A. Prints current date and time.
+      B. Sleeps for one second.
+         A and B are repeated for lifetime of cronjob and related pod.
+
+2. Create Docker file to generate container image. 
+   -----------------------------------------------
+   Details:
+      A. Use python3 as base docker image.
+            FROM python:3.6
+      B. Create working directory.
+            RUN mkdir  /scripts
+            WORKDIR /single
+      C. Copy script created in step1 above inside working directory.
+            COPY timeStamp.py .
+
+3. Build Docker file to create container image to be used in Kubernetes pod.
+   -------------------------------------------------------------------------
+   Details:
+      A. Build image using Dockerfile created in step2 above.
+            # docker build -t time-stamp:latest .
+      B. Loging to docker registry.
+            # docker login
+            - it will prompt for username and password of docker repository.
+              I have used ranasheel2000 as docker repository.
+      C. Tag docker image before pushing it to specific docker repository.
+            # docker tag time-stamp:latest ranasheel2000/time-stamp:latest
+      D. Push to docker repository.
+            # docker push ranasheel2000/time-stamp:latest
+
+
+4. Create CronJob.yml.
+   ------------------
+   .....
+   .....
+   spec:
+     schedule: "0/1 * * * *"
+     concurrencyPolicy: Forbid
+     failedJobsHistoryLimit: 3
+     successfulJobsHistoryLimit: 1
+     jobTemplate:
+       spec:
+         parallelism: 1
+         backoffLimit: 3
+         template:
+           spec:
+             containers:
+               - image: ranasheel2000/time-stamp:latest
+                 command: ["python3"]
+                 args: ["./timeStamp.py"]
+                 name: time-stamp-job
+                 imagePullPolicy: IfNotPresent
+             restartPolicy: Never
+     
+     Details:
+       A. Cron-job spec: it includes certain policies and job specifications. 
+            schedule : explains about frequency of running jobs.
+            concurrencyPolicy : explains whether concurrency is allowed for jobs or not.
+                                forbid means next job will be executed only once previous job is finished.
+            failedJobsHistoryLimit : it keeps specified number of failed job pods for later debugging purpose. 
+            successfulJobsHistoryLimit : it keeps specified number of successful job pods.
+       B. Job Spec:
+             parallelism
+             backoffLimit
+       C. Pod Spec:
+             container image: images to be used for running container.
+             command and arguments: command to be executed inside container, arguments are supplements for commands.
+             imagePullPolicy: specifies image pull policy, Pull Always, Never, IfNotPresent etc.
+
+
+Execution Result:
+-----------------
+     # kubectl create -f CronJob.yml
+       cronjob.batch/time-stamp-cron-job created
+
+     # kubectl get all
+       NAME                                       READY   STATUS    RESTARTS   AGE
+       pod/time-stamp-cron-job-1607279940-v56wp   1/1     Running   0          45m
+     
+       NAME                                       COMPLETIONS   DURATION   AGE
+       job.batch/time-stamp-cron-job-1607279940   0/1           45m        45m
+       
+       NAME                                SCHEDULE    SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+       cronjob.batch/time-stamp-cron-job   * * * * *   False     1        45m             46m
+       
+       NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+       service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   170m
+
+     # kubectl logs time-stamp-cron-job-1607279940-v56wp
+       current timestamp = 2020-12-06 19:25:29.954230
